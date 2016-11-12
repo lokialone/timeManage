@@ -1,0 +1,37 @@
+{
+  "name": "timemanage",
+  "version": "1.0.0",
+  "description": "关于记录网站浏览时间和限制网站访问的chrome插件",
+  "main": "index.js",
+  "dependencies": {
+  },
+  "devDependencies": {
+    "babel-core": "^6.14.0",
+    "babel-loader": "^6.2.5",
+    "babel-preset-es2015": "^6.14.0",
+    "babel-preset-react": "^6.11.1",
+    "clean-webpack-plugin": "^0.1.10",
+    "css-loader": "^0.25.0",
+    "file-loader": "^0.9.0",
+    "html-webpack-plugin": "^2.22.0",
+    "style-loader": "^0.13.1",
+    "url-loader": "^0.5.7",
+    "webpack": "^1.13.2",
+    "webpack-dev-server": "^1.16.1",
+    "webpack-merge": "^0.14.1"
+  },
+  "scripts": {
+    "start": "webpack-dev-server",
+    "build": "webpack"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lokialone/timeManage.git"
+  },
+  "author": "lokialone",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/lokialone/timeManage/issues"
+  },
+  "homepage": "https://github.com/lokialone/timeManage#readme"
+}
