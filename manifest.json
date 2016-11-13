@@ -15,5 +15,13 @@
         },
         "default_title": "我的时钟",
         "default_popup": "build/index.html"
-    }
+    },
+    "background": {
+       "scripts": [
+           "build/background.js"
+       ]
+   },
+   "permissions": [
+       "http://www.google.cn/"
+   ]
 }

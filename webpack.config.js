@@ -7,6 +7,7 @@ var CleanWebpackPlugin  = require('clean-webpack-plugin');
 var config = {
   entry: {
     main: path.join(__dirname,'index.js'),
+    background: path.join(__dirname,'js/background.js'),
     vendor: Object.keys(pkg.dependencies)
 
   },
