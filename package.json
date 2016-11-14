@@ -4,6 +4,7 @@
   "description": "关于记录网站浏览时间和限制网站访问的chrome插件",
   "main": "index.js",
   "dependencies": {
+    "leancloud-storage": "^1.5.2",
     "whatwg-fetch": "^1.0.0"
   },
   "devDependencies": {

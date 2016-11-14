@@ -8,7 +8,7 @@ function showTime(el){
   minutes = minutes >= 10 ? minutes : ('0' + minutes)
   seconds = seconds >= 10 ? seconds : ('0' + seconds)
 
-  el.innerHTML = hours + ":" + minutes + ":" + seconds;
+  el.innerHTML = hours + ":" + minutes + ":" + seconds
 
   setTimeout(()=>{showTime(el)},1000)
 }

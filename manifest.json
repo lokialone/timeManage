@@ -18,10 +18,9 @@
         "default_popup": "build/index.html"
     },
     "background": {
-       "scripts": [
-           "js/background.js"
-       ]
+       "page":"background.html"
    },
+   "content_security_policy": "script-src 'self' https://cdn1.lncld.net; object-src 'self'",
    "permissions": [
        "contextMenus",
        "tabs",

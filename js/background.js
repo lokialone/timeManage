@@ -1,3 +1,27 @@
+function LeanCloudInit(){
+  // 应用 ID，用来识别应用
+  var APP_ID = 'jKSkOo7kJrhGtjOPY5jtj8vt-gzGzoHsz';
+
+  // 应用 Key，用来校验权限（Web 端可以配置安全域名来保护数据安全）
+  var APP_KEY = 'R2A6rfB2v8VXrjX0mNtzro0t';
+  // 初始化
+  AV.init({
+    appId: APP_ID,
+    appKey: APP_KEY
+  });
+}
+LeanCloudInit();
+
+// testObject
+var TestObject = AV.Object.extend('TestObject');
+var testObject = new TestObject();
+testObject.save({
+  words: 'Hello lokia !'
+}).then(function(object) {
+  alert('LeanCloud Rocks!');
+})
+
+
 function httpRequest(url, callback){
     var xhr = new XMLHttpRequest();
     xhr.open("GET", url, true);
@@ -32,7 +56,6 @@ Function.prototype.bind= function(context){
 }
 
 TimeCount.prototype.init = function() {
-  this.getTitle();
   this.countUp();
 }
 
@@ -45,7 +68,7 @@ TimeCount.prototype.getCurrentTabInfo = function() {
   });
 }
 
-TimeCount.prototype.checkStatus = funciton(){
+TimeCount.prototype.checkStatus = function() {
 
 }
 
@@ -64,6 +87,9 @@ TimeCount.prototype.countUp = function() {
   setTimeout(this.countUp.bind(this),1000);
 }
 
+chrome.tabs.onHighlighted.addListener(function(highlightInfo){
+    console.log('Tab '+highlightInfo.title+' in window '+highlightInfo.windowId+' is highlighted now.');
+});
 TimeCount.prototype.showTime = function() {
   this.hour = Math.floor(this.todayTimeCount / 3600);
   var minutes = (this.todayTimeCount - this.hour * 3600) / 60;
