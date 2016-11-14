@@ -12,28 +12,68 @@ function httpRequest(url, callback){
     xhr.send();
 }
 
-// function checkStatus(){
-//     httpRequest('http://www.google.com/', function(status){
-//         chrome.browserAction.setIcon({path: 'images/'+(status?'online.png':'offline.png')});
-//         setTimeout(checkStatus, 5000);
-//     });
-// }
 chrome.browserAction.setBadgeBackgroundColor({color: '#0000FF'});
-chrome.browserAction.setBadgeText({text: 'hii'});
-// checkStatus();
 
-function timeCount() {
+var TimeCount = function() {
+  this.totalTimeCount = '';
+  this.title = '';
+  this.url = '';
+  this.todayTimeCount = 0;
+  this.hour = 0;
+  this.minute = 0;
+  this.domain = '';
+}
 
+Function.prototype.bind= function(context){
+  var self = this;
+  return function(){
+    return self.apply(context,arguments)
+  }
+}
+
+TimeCount.prototype.init = function() {
+  this.getTitle();
+  this.countUp();
+}
+
+TimeCount.prototype.getCurrentTabInfo = function() {
+  chrome.tabs.query({
+      highlighted: true
+  }, function(tab){
+      this.title = tab[0].title;
+      this.url = tab[0].url;
+  });
+}
+
+TimeCount.prototype.checkStatus = funciton(){
+
+}
+
+TimeCount.prototype.checkDomainChange = function(){
 
 
 }
 
-function checkDomain() {
-
+TimeCount.prototype.createDatabase = function(){
+  var db = openDatabase('TimeCount', '2.0',this.title, 2 * 1024);
 }
 
-chrome.tabs.query({
-    active: true
-}, function(tabArray){
-    console.log(tabArray);
-});
+TimeCount.prototype.countUp = function() {
+  this.todayTimeCount++;
+  this.showTime();
+  setTimeout(this.countUp.bind(this),1000);
+}
+
+TimeCount.prototype.showTime = function() {
+  this.hour = Math.floor(this.todayTimeCount / 3600);
+  var minutes = (this.todayTimeCount - this.hour * 3600) / 60;
+  if(minutes > 30){
+    this.minute = 5;
+  }else{
+    this.minute = 0;
+  }
+  chrome.browserAction.setBadgeText({text: this.hour+'.'+this.minute+'h'});
+}
+
+var timeCount = new TimeCount();
+timeCount.init();

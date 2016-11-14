@@ -24,6 +24,7 @@
    },
    "permissions": [
        "contextMenus",
+       "tabs",
        "http://www.google.cn/"
    ]
 }
