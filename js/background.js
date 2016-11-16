@@ -10,19 +10,23 @@ function LeanCloudInit(){
     appKey: APP_KEY
   });
 }
+
 LeanCloudInit();
 
-// testObject
-var TestObject = AV.Object.extend('TestObject');
-var testObject = new TestObject();
-testObject.save({
-  words: 'Hello lokia !'
-}).then(function(object) {
-  alert('LeanCloud Rocks!');
-})
+// openDatabase
+var browserTimeTable = AV.Object.extend('browserTime');
+var browserTime = new browserTimeTable();
 
+function saveData(obj){
+  browserTime.save({
+    site: obj.site,
+    totalTime: obj.totalTime
+  }).then(function(object) {
+    alert('LeanCloud Rocks!');
+  })
+}
 
-function httpRequest(url, callback){
+function httpRequest(url, callback) {
     var xhr = new XMLHttpRequest();
     xhr.open("GET", url, true);
     xhr.onreadystatechange = function() {
@@ -48,7 +52,7 @@ var TimeCount = function() {
   this.domain = '';
 }
 
-Function.prototype.bind= function(context){
+Function.prototype.bind= function(context) {
   var self = this;
   return function(){
     return self.apply(context,arguments)
@@ -72,19 +76,19 @@ TimeCount.prototype.checkStatus = function() {
 
 }
 
-TimeCount.prototype.checkDomainChange = function(){
+TimeCount.prototype.checkDomainChange = function() {
 
 
-}
-
-TimeCount.prototype.createDatabase = function(){
-  var db = openDatabase('TimeCount', '2.0',this.title, 2 * 1024);
 }
 
 TimeCount.prototype.countUp = function() {
   this.todayTimeCount++;
   this.showTime();
   setTimeout(this.countUp.bind(this),1000);
+}
+
+TimeCount.prototype.overTime = function() {
+
 }
 
 chrome.tabs.onHighlighted.addListener(function(highlightInfo){
@@ -100,6 +104,7 @@ TimeCount.prototype.showTime = function() {
   }
   chrome.browserAction.setBadgeText({text: this.hour+'.'+this.minute+'h'});
 }
+
 
 var timeCount = new TimeCount();
 timeCount.init();
