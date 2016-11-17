@@ -1,3 +1,5 @@
+const DATABASE = 'browserTime';
+
 function LeanCloudInit(){
   // 应用 ID，用来识别应用
   var APP_ID = 'jKSkOo7kJrhGtjOPY5jtj8vt-gzGzoHsz';
@@ -11,20 +13,38 @@ function LeanCloudInit(){
   });
 }
 
-LeanCloudInit();
 
-// openDatabase
-var browserTimeTable = AV.Object.extend('browserTime');
-var browserTime = new browserTimeTable();
+
 
 function saveData(obj){
   browserTime.save({
     site: obj.site,
-    totalTime: obj.totalTime
+    totalTime: obj.totalTime,
+    todayTime:obj.todayTime
   }).then(function(object) {
     alert('LeanCloud Rocks!');
   })
 }
+
+function queryData(site){
+  var query = new AV.Query(DATABASE);
+  query.contains('site',site);
+  query.find().then(function(result){
+    console.log(result);
+  },function(error){
+  });
+}
+
+// todo
+// totalTimeCount
+
+function updateTimeData(objectId,time){
+  var record = AV.Object.createWithoutData(DATABASE, objectId);
+  // 修改属性
+  todo.set('todayTime', time);
+  todo.save();
+}
+
 
 function httpRequest(url, callback) {
     var xhr = new XMLHttpRequest();
@@ -60,7 +80,9 @@ Function.prototype.bind= function(context) {
 }
 
 TimeCount.prototype.init = function() {
-  this.countUp();
+  this.getCurrentTabInfo();
+  chrome.browserAction.setBadgeText({text: this.title});
+  // this.countUp();
 }
 
 TimeCount.prototype.getCurrentTabInfo = function() {
@@ -91,9 +113,8 @@ TimeCount.prototype.overTime = function() {
 
 }
 
-chrome.tabs.onHighlighted.addListener(function(highlightInfo){
-    console.log('Tab '+highlightInfo.title+' in window '+highlightInfo.windowId+' is highlighted now.');
-});
+
+
 TimeCount.prototype.showTime = function() {
   this.hour = Math.floor(this.todayTimeCount / 3600);
   var minutes = (this.todayTimeCount - this.hour * 3600) / 60;
@@ -105,6 +126,33 @@ TimeCount.prototype.showTime = function() {
   chrome.browserAction.setBadgeText({text: this.hour+'.'+this.minute+'h'});
 }
 
+function checkDomainChange() {
 
-var timeCount = new TimeCount();
-timeCount.init();
+}
+
+LeanCloudInit();
+// openDatabase
+var browserTimeTable = AV.Object.extend(DATABASE);
+var browserTime = new browserTimeTable();
+
+// 同一个tab下改变网站的检测
+window.addEventListener('load', handleChange);
+
+// 新增标签的tag检测
+chrome.tabs.onHighlighted.addListener(function(highlightInfo){
+  console.log(highlightInfo);
+});
+
+//像指定的标签载入脚本
+// chrome.tabs.executeScript(tabId, {
+//     file: 'js/ex.js',
+//     allFrames: true,
+//     runAt: 'document_start'
+// }, function(resultArray){
+//     console.log(resultArray);
+// });
+function handleChange(){
+  console.log('dddd');
+  var timeCount = new TimeCount();
+  timeCount.init();
+}
