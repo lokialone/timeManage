@@ -1,4 +1,10 @@
+chrome.browserAction.setBadgeText({text: 'hello'});
+chrome.browserAction.setBadgeBackgroundColor({color: '#0000FF'});
+
+
+
 const DATABASE = 'browserTime';
+
 
 function LeanCloudInit(){
   // 应用 ID，用来识别应用
@@ -12,9 +18,6 @@ function LeanCloudInit(){
     appKey: APP_KEY
   });
 }
-
-
-
 
 function saveData(obj){
   browserTime.save({
@@ -60,18 +63,6 @@ function httpRequest(url, callback) {
     xhr.send();
 }
 
-chrome.browserAction.setBadgeBackgroundColor({color: '#0000FF'});
-
-var TimeCount = function() {
-  this.totalTimeCount = '';
-  this.title = '';
-  this.url = '';
-  this.todayTimeCount = 0;
-  this.hour = 0;
-  this.minute = 0;
-  this.domain = '';
-}
-
 Function.prototype.bind= function(context) {
   var self = this;
   return function(){
@@ -79,33 +70,33 @@ Function.prototype.bind= function(context) {
   }
 }
 
-TimeCount.prototype.init = function() {
-  this.getCurrentTabInfo();
-  chrome.browserAction.setBadgeText({text: this.title});
-  // this.countUp();
+var TimeCount = function(url) {
+  this.totalTimeCount = '';
+  this.title = '';
+  this.url = url;
+  this.todayTimeCount = 0;
+  this.hour = 0;
+  this.minute = 0;
+  this.domain = '';
+  this.tabId = '';
 }
 
-TimeCount.prototype.getCurrentTabInfo = function() {
-  chrome.tabs.query({
-      highlighted: true
-  }, function(tab){
-      this.title = tab[0].title;
-      this.url = tab[0].url;
-  });
+TimeCount.prototype.init = function() {
+	this.countUp();
+  
 }
 
 TimeCount.prototype.checkStatus = function() {
-
 }
 
 TimeCount.prototype.checkDomainChange = function() {
-
-
 }
 
 TimeCount.prototype.countUp = function() {
   this.todayTimeCount++;
-  this.showTime();
+  var hh = this.todayTimeCount+'';
+  chrome.browserAction.setBadgeText({text: hh});
+  //this.showTime();
   setTimeout(this.countUp.bind(this),1000);
 }
 
@@ -113,20 +104,17 @@ TimeCount.prototype.overTime = function() {
 
 }
 
-
-
 TimeCount.prototype.showTime = function() {
   this.hour = Math.floor(this.todayTimeCount / 3600);
   var minutes = (this.todayTimeCount - this.hour * 3600) / 60;
-  if(minutes > 30){
-    this.minute = 5;
+  if(this.hour <= 0){
+    chrome.browserAction.setBadgeText({text: this.minute+'min'});
   }else{
-    this.minute = 0;
+    chrome.browserAction.setBadgeText({text: this.hour + 'h' + this.minute +'m'});
   }
-  chrome.browserAction.setBadgeText({text: this.hour+'.'+this.minute+'h'});
 }
 
-function checkDomainChange() {
+TimeCount.prototype.checkDomain = function() {
 
 }
 
@@ -134,14 +122,37 @@ LeanCloudInit();
 // openDatabase
 var browserTimeTable = AV.Object.extend(DATABASE);
 var browserTime = new browserTimeTable();
+var timeCount = '';
 
-// 同一个tab下改变网站的检测
-window.addEventListener('load', handleChange);
+chrome.extension.onRequest.addListener(
+  function(request, sender, sendResponse) {
+    console.log(sender.tab ?
+                "from a content script:" + sender.tab.url :
+                "from the extension");
+    timeCount = '';
+   	timeCount = new TimeCount(sender.tab.url);
+   	timeCount.init();
+    if (request.greeting == "begin")
+      sendResponse({farewell: "goodbye"});
+    else
+      sendResponse({}); // snub them.
+ });
 
-// 新增标签的tag检测
-chrome.tabs.onHighlighted.addListener(function(highlightInfo){
-  console.log(highlightInfo);
+
+
+chrome.tabs.onActivated.addListener(function(activeInfo){
+    chrome.tabs.get(activeInfo.tabId, function(tab){
+    	timeCount = '';
+    	timeCount = new TimeCount(tab.url);
+    	console.log(timeCount);
+    	timeCount.init();
+	});
 });
+
+
+
+
+
 
 //像指定的标签载入脚本
 // chrome.tabs.executeScript(tabId, {
@@ -151,8 +162,3 @@ chrome.tabs.onHighlighted.addListener(function(highlightInfo){
 // }, function(resultArray){
 //     console.log(resultArray);
 // });
-function handleChange(){
-  console.log('dddd');
-  var timeCount = new TimeCount();
-  timeCount.init();
-}
