@@ -1,10 +1,7 @@
 chrome.browserAction.setBadgeText({text: 'hello'});
 chrome.browserAction.setBadgeBackgroundColor({color: '#0000FF'});
 
-
-
 const DATABASE = 'browserTime';
-
 
 function LeanCloudInit(){
   // 应用 ID，用来识别应用
@@ -79,11 +76,12 @@ var TimeCount = function(url) {
   this.minute = 0;
   this.domain = '';
   this.tabId = '';
+  this.timer = '';
 }
 
 TimeCount.prototype.init = function() {
 	this.countUp();
-  
+
 }
 
 TimeCount.prototype.checkStatus = function() {
@@ -92,12 +90,15 @@ TimeCount.prototype.checkStatus = function() {
 TimeCount.prototype.checkDomainChange = function() {
 }
 
+
 TimeCount.prototype.countUp = function() {
-  this.todayTimeCount++;
-  var hh = this.todayTimeCount+'';
-  chrome.browserAction.setBadgeText({text: hh});
+  this.timer = setInterval(function(){
+    this.todayTimeCount++;
+    var hh = this.todayTimeCount+'';
+    chrome.browserAction.setBadgeText({text: hh});
+  }.bind(this),1000);
   //this.showTime();
-  setTimeout(this.countUp.bind(this),1000);
+  // setTimeout(this.countUp.bind(this),1000);
 }
 
 TimeCount.prototype.overTime = function() {
@@ -114,6 +115,10 @@ TimeCount.prototype.showTime = function() {
   }
 }
 
+TimeCount.prototype.remove = function(){
+  var timer = this.timer;
+  window.clearInterval(timer);
+}
 TimeCount.prototype.checkDomain = function() {
 
 }
@@ -122,16 +127,13 @@ LeanCloudInit();
 // openDatabase
 var browserTimeTable = AV.Object.extend(DATABASE);
 var browserTime = new browserTimeTable();
-var timeCount = '';
 
 chrome.extension.onRequest.addListener(
   function(request, sender, sendResponse) {
     console.log(sender.tab ?
                 "from a content script:" + sender.tab.url :
                 "from the extension");
-    timeCount = '';
-   	timeCount = new TimeCount(sender.tab.url);
-   	timeCount.init();
+    timeCountSingleInstance.init(sender.tab.url);
     if (request.greeting == "begin")
       sendResponse({farewell: "goodbye"});
     else
@@ -139,17 +141,30 @@ chrome.extension.onRequest.addListener(
  });
 
 
-
 chrome.tabs.onActivated.addListener(function(activeInfo){
     chrome.tabs.get(activeInfo.tabId, function(tab){
-    	timeCount = '';
-    	timeCount = new TimeCount(tab.url);
-    	console.log(timeCount);
-    	timeCount.init();
+      timeCountSingleInstance.init(tab.url);
 	});
 });
 
 
+var timeCountSingleInstance = function() {
+  this.timeCount = '';
+};
+
+timeCountSingleInstance.init = function(url) {
+  if(this.timeCount) {
+    this.timeCount.remove();
+    this.timeCount = '';
+  }
+  this.timeCount = new TimeCount(url);
+  this.timeCount.init();
+}
+
+// todo
+// 单例instance timecount 清除计时器
+// 从云端获得数据，存储数据
+// 结束动画
 
 
 
