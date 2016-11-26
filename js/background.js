@@ -31,6 +31,7 @@ function queryData(site){
   query.contains('site',site);
   query.find().then(function(result){
     console.log(result);
+    return result;
   },function(error){
   });
 }
@@ -77,17 +78,39 @@ var TimeCount = function(url) {
   this.domain = '';
   this.tabId = '';
   this.timer = '';
+  this.recordId = '';//记录更新时使用
 }
 
 TimeCount.prototype.init = function() {
+  this.setDomain();
+  this.getTodayTimeCount();
 	this.countUp();
+}
 
+TimeCount.prototype.getTodayTimeCount = function() {
+  var query = new AV.Query(DATABASE);
+  query.contains('site',this.domain);
+  query.find().then(function(result){
+    if(result){
+  
+    }
+  },function(error){
+  });
 }
 
 TimeCount.prototype.checkStatus = function() {
 }
 
-TimeCount.prototype.checkDomainChange = function() {
+// todo need to update
+TimeCount.prototype.setDomain = function() {
+  var reg_http = /http:\/\/([^\/]+)/;
+  var reg_https = /https:\/\/([^\/]+)/;
+  var temp = this.url.match(reg_http);
+  if(temp === null){
+    temp =this.url.match(reg_https);
+  }
+  this.domain = temp[1];
+  console.log(this.domain);
 }
 
 
@@ -119,6 +142,7 @@ TimeCount.prototype.remove = function(){
   var timer = this.timer;
   window.clearInterval(timer);
 }
+
 TimeCount.prototype.checkDomain = function() {
 
 }
@@ -162,8 +186,8 @@ timeCountSingleInstance.init = function(url) {
 }
 
 // todo
-// 单例instance timecount 清除计时器
-// 从云端获得数据，存储数据
+// 使用url判断网站  --> checkDomain
+// 从云端获得数据，存储数据   ---先做
 // 结束动画
 
 
