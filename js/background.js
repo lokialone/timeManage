@@ -22,7 +22,7 @@ function saveData(obj){
     totalTime: obj.totalTime,
     todayTime:obj.todayTime
   }).then(function(object) {
-    alert('LeanCloud Rocks!');
+
   })
 }
 
@@ -39,11 +39,17 @@ function queryData(site){
 // todo
 // totalTimeCount
 
-function updateTimeData(objectId,time){
+function updateTimeData(objectId,todayTime,totaltime){
   var record = AV.Object.createWithoutData(DATABASE, objectId);
   // 修改属性
-  todo.set('todayTime', time);
-  todo.save();
+  record.set('todayTime', todayTime + '');
+  record.set('totaltime', totaltime + '');
+
+  record.save().then(function(res){
+    console.log(res);
+  },function(err){
+    console.log(err);
+  });
 }
 
 
@@ -75,7 +81,7 @@ var TimeCount = function(url) {
   this.todayTimeCount = 0;
   this.hour = 0;
   this.minute = 0;
-  this.domain = '';
+  this.site = '';
   this.tabId = '';
   this.timer = '';
   this.recordId = '';//记录更新时使用
@@ -85,17 +91,6 @@ TimeCount.prototype.init = function() {
   this.setDomain();
   this.getTodayTimeCount();
 	this.countUp();
-}
-
-TimeCount.prototype.getTodayTimeCount = function() {
-  var query = new AV.Query(DATABASE);
-  query.contains('site',this.domain);
-  query.find().then(function(result){
-    if(result){
-  
-    }
-  },function(error){
-  });
 }
 
 TimeCount.prototype.checkStatus = function() {
@@ -109,8 +104,8 @@ TimeCount.prototype.setDomain = function() {
   if(temp === null){
     temp =this.url.match(reg_https);
   }
-  this.domain = temp[1];
-  console.log(this.domain);
+  this.site = temp[1];
+  console.log(this.site);
 }
 
 
@@ -146,6 +141,42 @@ TimeCount.prototype.remove = function(){
 TimeCount.prototype.checkDomain = function() {
 
 }
+TimeCount.prototype.getTodayTimeCount = function() {
+  var _self = this;
+  var query = new AV.Query(DATABASE);
+  query.contains('site',this.site);
+  query.find().then(function(result){
+    if(result.length){
+      _self.todayTimeCount = result[0].attributes.todayTime;
+      _self.totalTimeCount = result[0].attributes.totalTime;
+    }else{
+      console.log(result);
+    }
+  },function(error){
+  });
+}
+TimeCount.prototype.saveData = function() {
+  //首先查询数据库是否存有该条数据
+  var _self = this;
+  var query = new AV.Query(DATABASE);
+  query.contains('site',_self.site);
+  query.find().then(function(result){
+    console.log(result);
+    console.log(result.length);
+    if(result.length > 0){
+      var id = result[0].id;
+      _self.totalTimeCount  = _self.totalTimeCount + _self.todayTimeCount;
+      var totalTime= _self.totalTimeCount + '';
+      updateTimeData(id,_self.todayTimeCount,_self.totalTimeCount);
+
+    }else{
+      var obj = {'site': _self.site,totalTime: _self.totalTimeCount+ '',todayTime: _self.todayTimeCount+''};
+      saveData(obj);
+    }
+  },function(error){
+    console.log(error);
+  });
+}
 
 LeanCloudInit();
 // openDatabase
@@ -176,10 +207,20 @@ var timeCountSingleInstance = function() {
   this.timeCount = '';
 };
 
+window.onbeforeunload =  function() {
+  alert('kkk');
+}
+
+function checkLeave() {
+    alert('kkk');
+}
 timeCountSingleInstance.init = function(url) {
-  if(this.timeCount) {
+  console.log(this.timeCount);
+  if(typeof this.timeCount !== 'undefined' && this.timeCount !== '') {
+    console.log('this.timeCount');
+    this.timeCount.saveData();
     this.timeCount.remove();
-    this.timeCount = '';
+    this.timeCount = "";
   }
   this.timeCount = new TimeCount(url);
   this.timeCount.init();
