@@ -2,6 +2,10 @@ chrome.extension.sendRequest({greeting: "begin"}, function(response) {
     console.log(response);
   });
 
-window.onbeforeunload = function(){
-  alert('用户离开页面啦');
+function leave() {
+  chrome.extension.sendRequest({greeting: "end"}, function(response) {
+    console.log(response);
+  });
 }
+
+window.onbeforeunload = leave;

@@ -1,6 +1,62 @@
 chrome.browserAction.setBadgeText({text: 'hello'});
 chrome.browserAction.setBadgeBackgroundColor({color: '#0000FF'});
 
+var Event = (function() {
+    var clientList = {};
+    var listen,
+        trigger,
+        remove;
+    listen = function(key, fn) {
+        if (!clientList[key]) {
+            clientList[key] = [];
+        }
+        clientList[key].push(fn);
+    };
+
+    trigger = function() {
+        var key = [].shift.call(arguments);
+        var fns = clientList[key];
+
+        if (!fns || fns.length === 0) {
+            return false;
+        }
+
+        for (var i = 0, fn; fn = fns[i++];) {
+            fn.apply(this, arguments);
+        }
+    };
+
+
+    remove = function(key, fn) {
+        var fns = clientList[key];
+
+        // key对应的消息么有被人订阅
+        if (!fns) {
+            return false;
+        }
+
+        // 没有传入fn(具体的回调函数), 表示取消key对应的所有订阅
+        if (!fn) {
+            fns && (fns.length = 0);
+        }
+        else {
+            // 反向遍历
+            for (var i = fns.length - 1; i >= 0; i--) {
+                var _fn = fns[i];
+                if (_fn === fn) {
+                    // 删除订阅回调函数
+                    fns.splice(i, 1);
+                }
+            }
+        }
+    };
+
+    return {
+        listen: listen,
+        trigger: trigger,
+        remove: remove
+    }
+}());
 const DATABASE = 'browserTime';
 
 function LeanCloudInit(){
@@ -22,7 +78,9 @@ function saveData(obj){
     totalTime: obj.totalTime,
     todayTime:obj.todayTime
   }).then(function(object) {
-
+      Event.trigger('saveData');
+  },function(error){
+    console.log(error);
   })
 }
 
@@ -30,7 +88,6 @@ function queryData(site){
   var query = new AV.Query(DATABASE);
   query.contains('site',site);
   query.find().then(function(result){
-    console.log(result);
     return result;
   },function(error){
   });
@@ -46,7 +103,7 @@ function updateTimeData(objectId,todayTime,totaltime){
   record.set('totaltime', totaltime + '');
 
   record.save().then(function(res){
-    console.log(res);
+    Event.trigger('saveData');
   },function(err){
     console.log(err);
   });
@@ -101,11 +158,10 @@ TimeCount.prototype.setDomain = function() {
   var reg_http = /http:\/\/([^\/]+)/;
   var reg_https = /https:\/\/([^\/]+)/;
   var temp = this.url.match(reg_http);
-  if(temp === null){
+  if(temp === null || temp === ''){
     temp =this.url.match(reg_https);
   }
   this.site = temp[1];
-  console.log(this.site);
 }
 
 
@@ -150,7 +206,8 @@ TimeCount.prototype.getTodayTimeCount = function() {
       _self.todayTimeCount = result[0].attributes.todayTime;
       _self.totalTimeCount = result[0].attributes.totalTime;
     }else{
-      console.log(result);
+      _self.todayTimeCount = 0;
+      _self.totalTimeCount = 0;
     }
   },function(error){
   });
@@ -161,8 +218,6 @@ TimeCount.prototype.saveData = function() {
   var query = new AV.Query(DATABASE);
   query.contains('site',_self.site);
   query.find().then(function(result){
-    console.log(result);
-    console.log(result.length);
     if(result.length > 0){
       var id = result[0].id;
       _self.totalTimeCount  = _self.totalTimeCount + _self.todayTimeCount;
@@ -185,14 +240,16 @@ var browserTime = new browserTimeTable();
 
 chrome.extension.onRequest.addListener(
   function(request, sender, sendResponse) {
-    console.log(sender.tab ?
-                "from a content script:" + sender.tab.url :
-                "from the extension");
-    timeCountSingleInstance.init(sender.tab.url);
+    // console.log(sender.tab ?
+    //             "from a content script:" + sender.tab.url :
+    //             "from the extension");
+
     if (request.greeting == "begin")
+      timeCountSingleInstance.init(sender.tab.url);
       sendResponse({farewell: "goodbye"});
-    else
-      sendResponse({}); // snub them.
+    if (request.greeting == "end") {
+      sendResponse({farewell: "goodbye"})
+    }
  });
 
 
@@ -207,24 +264,26 @@ var timeCountSingleInstance = function() {
   this.timeCount = '';
 };
 
-window.onbeforeunload =  function() {
-  alert('kkk');
-}
 
-function checkLeave() {
-    alert('kkk');
-}
+
 timeCountSingleInstance.init = function(url) {
   console.log(this.timeCount);
-  if(typeof this.timeCount !== 'undefined' && this.timeCount !== '') {
-    console.log('this.timeCount');
-    this.timeCount.saveData();
-    this.timeCount.remove();
-    this.timeCount = "";
+  if(typeof this.timeCount !== 'undefined' && this.timeCount !== '' && this.timeCount.url !== "chrome://extensions/" && this.timeCount.url !== 'chrome://newtab/') {
+    _self = this;
+    _self.timeCount.saveData();
+    Event.listen('saveData',function(){
+      _self.timeCount.remove();
+      _self.timeCount = "";
+      _self.timeCount = new TimeCount(url);
+      _self.timeCount.init();
+    });
+  }else{
+    this.timeCount = new TimeCount(url);
+    this.timeCount.init();
   }
-  this.timeCount = new TimeCount(url);
-  this.timeCount.init();
 }
+
+
 
 // todo
 // 使用url判断网站  --> checkDomain
