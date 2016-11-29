@@ -99,8 +99,8 @@ function queryData(site){
 function updateTimeData(objectId,todayTime,totaltime){
   var record = AV.Object.createWithoutData(DATABASE, objectId);
   // 修改属性
-  record.set('todayTime', todayTime + '');
-  record.set('totaltime', totaltime + '');
+  record.set('todayTime', todayTime.toString());
+  record.set('totalTime', totalTime.toString());
 
   record.save().then(function(res){
     Event.trigger('saveData');
@@ -132,7 +132,7 @@ Function.prototype.bind= function(context) {
 }
 
 var TimeCount = function(url) {
-  this.totalTimeCount = '';
+  this.totalTimeCount = 0;
   this.title = '';
   this.url = url;
   this.todayTimeCount = 0;
@@ -168,8 +168,9 @@ TimeCount.prototype.setDomain = function() {
 TimeCount.prototype.countUp = function() {
   this.timer = setInterval(function(){
     this.todayTimeCount++;
-    var hh = this.todayTimeCount+'';
-    chrome.browserAction.setBadgeText({text: hh});
+    this.showTime();
+    // var hh = this.todayTimeCount.toString();
+    // chrome.browserAction.setBadgeText({text: hh});
   }.bind(this),1000);
   //this.showTime();
   // setTimeout(this.countUp.bind(this),1000);
@@ -203,8 +204,8 @@ TimeCount.prototype.getTodayTimeCount = function() {
   query.contains('site',this.site);
   query.find().then(function(result){
     if(result.length){
-      _self.todayTimeCount = result[0].attributes.todayTime;
-      _self.totalTimeCount = result[0].attributes.totalTime;
+      _self.todayTimeCount = parseInt(result[0].attributes.todayTime);
+      _self.totalTimeCount = parseInt(result[0].attributes.totalTime);
     }else{
       _self.todayTimeCount = 0;
       _self.totalTimeCount = 0;
@@ -221,11 +222,10 @@ TimeCount.prototype.saveData = function() {
     if(result.length > 0){
       var id = result[0].id;
       _self.totalTimeCount  = _self.totalTimeCount + _self.todayTimeCount;
-      var totalTime= _self.totalTimeCount + '';
       updateTimeData(id,_self.todayTimeCount,_self.totalTimeCount);
 
     }else{
-      var obj = {'site': _self.site,totalTime: _self.totalTimeCount+ '',todayTime: _self.todayTimeCount+''};
+      var obj = {'site': _self.site,totalTime: _self.totalTimeCount.toString(),todayTime: _self.todayTimeCount.toString()};
       saveData(obj);
     }
   },function(error){
@@ -243,13 +243,8 @@ chrome.extension.onRequest.addListener(
     // console.log(sender.tab ?
     //             "from a content script:" + sender.tab.url :
     //             "from the extension");
-
-    if (request.greeting == "begin")
       timeCountSingleInstance.init(sender.tab.url);
       sendResponse({farewell: "goodbye"});
-    if (request.greeting == "end") {
-      sendResponse({farewell: "goodbye"})
-    }
  });
 
 
@@ -263,7 +258,6 @@ chrome.tabs.onActivated.addListener(function(activeInfo){
 var timeCountSingleInstance = function() {
   this.timeCount = '';
 };
-
 
 
 timeCountSingleInstance.init = function(url) {
@@ -286,9 +280,10 @@ timeCountSingleInstance.init = function(url) {
 
 
 // todo
-// 使用url判断网站  --> checkDomain
-// 从云端获得数据，存储数据   ---先做
+// 数据转换
 // 结束动画
+// 判断当前时间和与数据的update时间
+// 优化
 
 
 
