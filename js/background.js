@@ -99,9 +99,8 @@ function queryData(site){
 function updateTimeData(objectId,todayTime,totaltime){
   var record = AV.Object.createWithoutData(DATABASE, objectId);
   // 修改属性
-  record.set('todayTime', todayTime.toString());
-  record.set('totalTime', totalTime.toString());
-
+  record.set('todayTime', todayTime);
+  record.set('totalTime', totalTime);
   record.save().then(function(res){
     Event.trigger('saveData');
   },function(err){
@@ -166,13 +165,17 @@ TimeCount.prototype.setDomain = function() {
 
 
 TimeCount.prototype.countUp = function() {
-  this.timer = setInterval(function(){
-    this.todayTimeCount++;
-    this.showTime();
-    // var hh = this.todayTimeCount.toString();
-    // chrome.browserAction.setBadgeText({text: hh});
-  }.bind(this),1000);
-  //this.showTime();
+  var _self = this;
+  Event.listen('getData',function(){
+      _self.timer = setInterval(function(){
+        _self.todayTimeCount++;
+        _self.showTime();
+      // var hh = _self.todayTimeCount.toString();
+      // chrome.browserAction.setBadgeText({text: hh});
+    },1000);
+
+  })
+
   // setTimeout(this.countUp.bind(this),1000);
 }
 
@@ -181,18 +184,18 @@ TimeCount.prototype.overTime = function() {
 }
 
 TimeCount.prototype.showTime = function() {
-  this.hour = Math.floor(this.todayTimeCount / 3600);
-  var minutes = (this.todayTimeCount - this.hour * 3600) / 60;
+  var hours = Math.floor(this.todayTimeCount / 3600);
+  var minutes = Math.floor((this.todayTimeCount - hours * 3600) / 60);
   if(this.hour <= 0){
-    chrome.browserAction.setBadgeText({text: this.minute+'min'});
+    chrome.browserAction.setBadgeText({text: minutes+'m'});
   }else{
-    chrome.browserAction.setBadgeText({text: this.hour + 'h' + this.minute +'m'});
+
+    chrome.browserAction.setBadgeText({text: hours + 'h' });
   }
 }
 
 TimeCount.prototype.remove = function(){
-  var timer = this.timer;
-  window.clearInterval(timer);
+  window.clearInterval(this.timer);
 }
 
 TimeCount.prototype.checkDomain = function() {
@@ -203,12 +206,14 @@ TimeCount.prototype.getTodayTimeCount = function() {
   var query = new AV.Query(DATABASE);
   query.contains('site',this.site);
   query.find().then(function(result){
-    if(result.length){
+    if(result.length === 1){
       _self.todayTimeCount = parseInt(result[0].attributes.todayTime);
       _self.totalTimeCount = parseInt(result[0].attributes.totalTime);
+      Event.trigger('getData');
     }else{
       _self.todayTimeCount = 0;
       _self.totalTimeCount = 0;
+      Event.trigger('getData');
     }
   },function(error){
   });
@@ -219,13 +224,20 @@ TimeCount.prototype.saveData = function() {
   var query = new AV.Query(DATABASE);
   query.contains('site',_self.site);
   query.find().then(function(result){
-    if(result.length > 0){
+    if(result.length === 1){
       var id = result[0].id;
       _self.totalTimeCount  = _self.totalTimeCount + _self.todayTimeCount;
-      updateTimeData(id,_self.todayTimeCount,_self.totalTimeCount);
+      var record = AV.Object.createWithoutData(DATABASE, id);
+      record.set('todayTime', _self.todayTimeCount.toString());
+      record.set('totalTime', _self.totalTimeCount.toString());
+      record.save().then(function(res){
+        Event.trigger('saveData');
+      },function(err){
+        console.log(err);
+      });
 
     }else{
-      var obj = {'site': _self.site,totalTime: _self.totalTimeCount.toString(),todayTime: _self.todayTimeCount.toString()};
+      var obj = {site: _self.site,totalTime: _self.totalTimeCount.toString(),todayTime: _self.todayTimeCount.toString()};
       saveData(obj);
     }
   },function(error){
@@ -240,16 +252,13 @@ var browserTime = new browserTimeTable();
 
 chrome.extension.onRequest.addListener(
   function(request, sender, sendResponse) {
-    // console.log(sender.tab ?
-    //             "from a content script:" + sender.tab.url :
-    //             "from the extension");
       timeCountSingleInstance.init(sender.tab.url);
       sendResponse({farewell: "goodbye"});
  });
 
 
 chrome.tabs.onActivated.addListener(function(activeInfo){
-    chrome.tabs.get(activeInfo.tabId, function(tab){
+      chrome.tabs.get(activeInfo.tabId, function(tab){
       timeCountSingleInstance.init(tab.url);
 	});
 });
@@ -259,22 +268,55 @@ var timeCountSingleInstance = function() {
   this.timeCount = '';
 };
 
+function showHello() {
+  chrome.browserAction.setBadgeText({text: 'hello'});
+  chrome.browserAction.setBadgeBackgroundColor({color: '#0000FF'});
+}
 
 timeCountSingleInstance.init = function(url) {
-  console.log(this.timeCount);
-  if(typeof this.timeCount !== 'undefined' && this.timeCount !== '' && this.timeCount.url !== "chrome://extensions/" && this.timeCount.url !== 'chrome://newtab/') {
-    _self = this;
-    _self.timeCount.saveData();
-    Event.listen('saveData',function(){
+   console.log(this.timeCount);
+   console.log(url);
+   Event.remove('saveData');
+   Event.remove('getData');
+   var _self = this;
+  if (url === "chrome://extensions/" || url === 'chrome://newtab/') {
+     showHello();
+     console.log('url');
+     if(this.timeCount === '' || typeof this.timeCount === 'undefined' || this.timeCount.url === 'chrome://extensions/' || this.timeCount.url === 'chrome://newtab/' ) {
+         console.log('url timecount null');
+         return ;
+     }else{
+        console.log('url timeCount not null');
+       this.timeCount.saveData();
+       Event.listen('saveData', function(){
+         _self.timeCount.remove();
+         _self.timeCount = '';
+       })
+     }
+
+     return;
+
+  }
+
+  if (typeof this.timeCount === 'undefined' || this.timeCount === '') {
+      console.log('undefined');
+      this.timeCount = new TimeCount(url);
+      this.timeCount.init();
+      return;
+  }
+  if (typeof this.timeCount !== 'undefined' && this.timeCount !== '' ) {
+    console.log('this timeCount has data');
+    this.timeCount.saveData();
+    Event.listen('saveData', function(){
       _self.timeCount.remove();
-      _self.timeCount = "";
+      _self.timeCount = '';
       _self.timeCount = new TimeCount(url);
       _self.timeCount.init();
-    });
-  }else{
-    this.timeCount = new TimeCount(url);
-    this.timeCount.init();
-  }
+    })
+  };
+
+
+
 }
 
 
