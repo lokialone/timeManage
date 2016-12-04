@@ -108,142 +108,146 @@ function updateTimeData(objectId,todayTime,totaltime){
   });
 }
 
+var TimeCount = (function(){
+  var site = '',
+      url = '',
+      todayTimeCount = 0,
+      timer = 0,
+      initFlag = false;
+  var init,
+      setDomain,
+      countUp,
+      showTime,
+      getTodayTimeCount,
+      saveData,
+      checkUrl,
+      remove;
 
-function httpRequest(url, callback) {
-    var xhr = new XMLHttpRequest();
-    xhr.open("GET", url, true);
-    xhr.onreadystatechange = function() {
-        if (xhr.readyState == 4) {
-            callback(true);
-        }
+  init = function(out_url) {
+    Event.remove('saveData');
+    Event.remove('getData');
+    url = out_url;
+    if(!checkUrl()){
+      console.log('url have no use');
+      return;
     }
-    xhr.onerror = function(){
-        callback(false);
+    if(initFlag){
+      saveData();
+      Event.listen('saveData',function(){
+        remove();
+        initFlag = true;
+
+        setDomain();
+        getTodayTimeCount();
+        countUp();
+
+      })
+    }else {
+      initFlag = true;
+      setDomain();
+      getTodayTimeCount();
+      countUp();
     }
-    xhr.send();
-}
+  };
+  checkUrl = function () {
+    if(url === "chrome://extensions/" || url === 'chrome://newtab/'){
+      chrome.browserAction.setBadgeText({text: 'hello'});
+      chrome.browserAction.setBadgeBackgroundColor({color: '#0000FF'});
+      if(initFlag){
+        saveData();
+        Event.listen('saveData',function(){
+          remove();
+        });
+      }
+      return false;
+    }
+    return true;
+  };
+  setDomain = function () {
+    var reg_http = /http:\/\/([^\/]+)/;
+    var reg_https = /https:\/\/([^\/]+)/;
+    var temp = url.match(reg_http);
+    if(temp === null || temp === ''){
+      temp = url.match(reg_https);
+    }
+    site = temp[1];
+  };
+  countUp = function () {
 
-Function.prototype.bind= function(context) {
-  var self = this;
-  return function(){
-    return self.apply(context,arguments)
-  }
-}
-
-var TimeCount = function(url) {
-  this.totalTimeCount = 0;
-  this.title = '';
-  this.url = url;
-  this.todayTimeCount = 0;
-  this.hour = 0;
-  this.minute = 0;
-  this.site = '';
-  this.tabId = '';
-  this.timer = '';
-  this.recordId = '';//记录更新时使用
-}
-
-TimeCount.prototype.init = function() {
-  this.setDomain();
-  this.getTodayTimeCount();
-	this.countUp();
-}
-
-TimeCount.prototype.checkStatus = function() {
-}
-
-// todo need to update
-TimeCount.prototype.setDomain = function() {
-  var reg_http = /http:\/\/([^\/]+)/;
-  var reg_https = /https:\/\/([^\/]+)/;
-  var temp = this.url.match(reg_http);
-  if(temp === null || temp === ''){
-    temp =this.url.match(reg_https);
-  }
-  this.site = temp[1];
-}
-
-
-TimeCount.prototype.countUp = function() {
-  var _self = this;
-  Event.listen('getData',function(){
-      _self.timer = setInterval(function(){
-        _self.todayTimeCount++;
-        _self.showTime();
-      // var hh = _self.todayTimeCount.toString();
-      // chrome.browserAction.setBadgeText({text: hh});
-    },1000);
-
-  })
-
-  // setTimeout(this.countUp.bind(this),1000);
-}
-
-TimeCount.prototype.overTime = function() {
-
-}
-
-TimeCount.prototype.showTime = function() {
-  var hours = Math.floor(this.todayTimeCount / 3600);
-  var minutes = Math.floor((this.todayTimeCount - hours * 3600) / 60);
-  if(this.hour <= 0){
-    chrome.browserAction.setBadgeText({text: minutes+'m'});
-  }else{
-
-    chrome.browserAction.setBadgeText({text: hours + 'h' });
-  }
-}
-
-TimeCount.prototype.remove = function(){
-  window.clearInterval(this.timer);
-}
-
-TimeCount.prototype.checkDomain = function() {
-
-}
-TimeCount.prototype.getTodayTimeCount = function() {
-  var _self = this;
-  var query = new AV.Query(DATABASE);
-  query.contains('site',this.site);
-  query.find().then(function(result){
-    if(result.length === 1){
-      _self.todayTimeCount = parseInt(result[0].attributes.todayTime);
-      _self.totalTimeCount = parseInt(result[0].attributes.totalTime);
-      Event.trigger('getData');
+    Event.listen('getData',function(){
+        timer = setInterval(function(){
+        todayTimeCount++;
+        // showTime();
+        var hh = todayTimeCount.toString();
+        chrome.browserAction.setBadgeText({text: hh});
+      },1000);
+    })
+  };
+  showTime = function () {
+    var hours = Math.floor(todayTimeCount / 3600);
+    var minutes = Math.floor((todayTimeCount - hours * 3600) / 60);
+    if(hours <= 0){
+      chrome.browserAction.setBadgeText({text: minutes+'m'});
     }else{
-      _self.todayTimeCount = 0;
-      _self.totalTimeCount = 0;
-      Event.trigger('getData');
-    }
-  },function(error){
-  });
-}
-TimeCount.prototype.saveData = function() {
-  //首先查询数据库是否存有该条数据
-  var _self = this;
-  var query = new AV.Query(DATABASE);
-  query.contains('site',_self.site);
-  query.find().then(function(result){
-    if(result.length === 1){
-      var id = result[0].id;
-      _self.totalTimeCount  = _self.totalTimeCount + _self.todayTimeCount;
-      var record = AV.Object.createWithoutData(DATABASE, id);
-      record.set('todayTime', _self.todayTimeCount.toString());
-      record.set('totalTime', _self.totalTimeCount.toString());
-      record.save().then(function(res){
-        Event.trigger('saveData');
-      },function(err){
-        console.log(err);
-      });
 
-    }else{
-      var obj = {site: _self.site,totalTime: _self.totalTimeCount.toString(),todayTime: _self.todayTimeCount.toString()};
-      saveData(obj);
+      chrome.browserAction.setBadgeText({text: hours + 'h' });
     }
-  },function(error){
-    console.log(error);
-  });
-}
+  },
+  getTodayTimeCount = function() {
+    var query = new AV.Query(DATABASE);
+    query.contains('site',site);
+    query.find().then(function(result){
+      if(result.length === 1){
+        todayTimeCount = parseInt(result[0].attributes.todayTime);
+        Event.trigger('getData');
+      }else{
+        todayTimeCount = 0;
+        Event.trigger('getData');
+      }
+    },function(error){
+    });
+  };
+  saveData = function () {
+    var query = new AV.Query(DATABASE);
+    query.contains('site',site);
+    query.find().then(function(result){
+      if(result.length === 1){
+        var id = result[0].id;
+        var record = AV.Object.createWithoutData(DATABASE, id);
+        record.set('todayTime',todayTimeCount.toString());
+        record.save().then(function(res){
+          Event.trigger('saveData');
+        },function(err){
+          console.log(err);
+        });
+
+      }else{
+        var obj = {site: site,totalTime: totalTimeCount.toString(),todayTime: todayTimeCount.toString()};
+        saveData(obj);
+      }
+    },function(error){
+      console.log(error);
+    });
+  };
+  remove = function () {
+     site = '';
+     url = '';
+     todayTimeCount = 0;
+     initFlag = false;
+     window.clearInterval(timer);
+  };
+  return {
+      init : init,
+      setDomain : setDomain,
+      countUp : countUp,
+      showTime : showTime,
+      getTodayTimeCount : getTodayTimeCount,
+      saveData : saveData,
+      remove : remove
+  }
+}());
+
+
 
 LeanCloudInit();
 // openDatabase
@@ -252,89 +256,18 @@ var browserTime = new browserTimeTable();
 
 chrome.extension.onRequest.addListener(
   function(request, sender, sendResponse) {
-      timeCountSingleInstance.init(sender.tab.url);
+      TimeCount.init(sender.tab.url);
       sendResponse({farewell: "goodbye"});
  });
 
 
 chrome.tabs.onActivated.addListener(function(activeInfo){
       chrome.tabs.get(activeInfo.tabId, function(tab){
-      timeCountSingleInstance.init(tab.url);
+      TimeCount.init(tab.url);
 	});
 });
-
-
-var timeCountSingleInstance = function() {
-  this.timeCount = '';
-};
 
 function showHello() {
   chrome.browserAction.setBadgeText({text: 'hello'});
   chrome.browserAction.setBadgeBackgroundColor({color: '#0000FF'});
 }
-
-timeCountSingleInstance.init = function(url) {
-   console.log(this.timeCount);
-   console.log(url);
-   Event.remove('saveData');
-   Event.remove('getData');
-   var _self = this;
-  if (url === "chrome://extensions/" || url === 'chrome://newtab/') {
-     showHello();
-     console.log('url');
-     if(this.timeCount === '' || typeof this.timeCount === 'undefined' || this.timeCount.url === 'chrome://extensions/' || this.timeCount.url === 'chrome://newtab/' ) {
-         console.log('url timecount null');
-         return ;
-     }else{
-        console.log('url timeCount not null');
-       this.timeCount.saveData();
-       Event.listen('saveData', function(){
-         _self.timeCount.remove();
-         _self.timeCount = '';
-       })
-     }
-
-     return;
-
-  }
-
-  if (typeof this.timeCount === 'undefined' || this.timeCount === '') {
-      console.log('undefined');
-      this.timeCount = new TimeCount(url);
-      this.timeCount.init();
-      return;
-  }
-  if (typeof this.timeCount !== 'undefined' && this.timeCount !== '' ) {
-    console.log('this timeCount has data');
-    this.timeCount.saveData();
-    Event.listen('saveData', function(){
-      _self.timeCount.remove();
-      _self.timeCount = '';
-      _self.timeCount = new TimeCount(url);
-      _self.timeCount.init();
-    })
-  };
-
-
-
-}
-
-
-
-// todo
-// 数据转换
-// 结束动画
-// 判断当前时间和与数据的update时间
-// 优化
-
-
-
-
-//像指定的标签载入脚本
-// chrome.tabs.executeScript(tabId, {
-//     file: 'js/ex.js',
-//     allFrames: true,
-//     runAt: 'document_start'
-// }, function(resultArray){
-//     console.log(resultArray);
-// });
