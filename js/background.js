@@ -95,25 +95,11 @@ function queryData(site){
 
 // todo
 // totalTimeCount
-
-function updateTimeData(objectId,todayTime,totaltime){
-  var record = AV.Object.createWithoutData(DATABASE, objectId);
-  // 修改属性
-  record.set('todayTime', todayTime);
-  record.set('totalTime', totalTime);
-  record.save().then(function(res){
-    Event.trigger('saveData');
-  },function(err){
-    console.log(err);
-  });
-}
-
 var TimeCount = (function(){
-  var site = '',
-      url = '',
-      todayTimeCount = 0,
-      timer = 0,
-      initFlag = false;
+  var timeData = [],
+      currentCountIndex = 0,
+      timer;
+
   var init,
       setDomain,
       countUp,
@@ -121,33 +107,13 @@ var TimeCount = (function(){
       getTodayTimeCount,
       saveData,
       checkUrl,
+      hasUrl,
+      getTimeData,
+      reset,
       remove;
 
-  init = function(out_url) {
-    Event.remove('saveData');
-    Event.remove('getData');
-    url = out_url;
-    if(!checkUrl()){
-      console.log('url have no use');
-      return;
-    }
-    if(initFlag){
-      saveData();
-      Event.listen('saveData',function(){
-        remove();
-        initFlag = true;
-
-        setDomain();
-        getTodayTimeCount();
-        countUp();
-
-      })
-    }else {
-      initFlag = true;
-      setDomain();
-      getTodayTimeCount();
-      countUp();
-    }
+  init = function() {
+    getTimeData();
   };
   checkUrl = function () {
     if(url === "chrome://extensions/" || url === 'chrome://newtab/'){
@@ -166,22 +132,39 @@ var TimeCount = (function(){
   setDomain = function () {
     var reg_http = /http:\/\/([^\/]+)/;
     var reg_https = /https:\/\/([^\/]+)/;
-    var temp = url.match(reg_http);
-    if(temp === null || temp === ''){
-      temp = url.match(reg_https);
+    var site = url.match(reg_http);
+    if(site === null || site === ''){
+      site = url.match(reg_https);
     }
-    site = temp[1];
+    return site;
   };
-  countUp = function () {
-
-    Event.listen('getData',function(){
-        timer = setInterval(function(){
-        todayTimeCount++;
-        // showTime();
-        var hh = todayTimeCount.toString();
-        chrome.browserAction.setBadgeText({text: hh});
+  countUp = function (url) {
+      reset();
+      var site = setDomain(url);
+      var index = hasUrl(site);
+      if(index < 0){
+        var data = { site: site,todayTime:0};
+        timeData.push(data);
+        currentCountIndex = timeData.length - 1;
+      }
+      else {
+        currentCountIndex = index;
+      }
+      timer = setInterval(function(){
+        var time = timeData[currentCountIndex].todayTime++;
+        chrome.browserAction.setBadgeText({text: time.toString()});
       },1000);
-    })
+  };
+  hasUrl = function(site) {
+    for(var i = 0, len = timeData.length; i < len;i++){
+      if(timeData[i].site === site){
+        return i;
+      }
+    }
+    return -1;
+  };
+  reset = function() {
+    window.clearInterval(timer);
   };
   showTime = function () {
     var hours = Math.floor(todayTimeCount / 3600);
@@ -193,49 +176,19 @@ var TimeCount = (function(){
       chrome.browserAction.setBadgeText({text: hours + 'h' });
     }
   },
-  getTodayTimeCount = function() {
-    var query = new AV.Query(DATABASE);
-    query.contains('site',site);
-    query.find().then(function(result){
-      if(result.length === 1){
-        todayTimeCount = parseInt(result[0].attributes.todayTime);
-        Event.trigger('getData');
-      }else{
-        todayTimeCount = 0;
-        Event.trigger('getData');
-      }
-    },function(error){
-    });
-  };
   saveData = function () {
-    var query = new AV.Query(DATABASE);
-    query.contains('site',site);
-    query.find().then(function(result){
-      if(result.length === 1){
-        var id = result[0].id;
-        var record = AV.Object.createWithoutData(DATABASE, id);
-        record.set('todayTime',todayTimeCount.toString());
-        record.save().then(function(res){
-          Event.trigger('saveData');
-        },function(err){
-          console.log(err);
-        });
+  };
+  getTimeData = function() {
+      var query = new AV.Query(DATABASE);
+      query.find().then(function(res){
+          console.log(res);
+      },function(error){
 
-      }else{
-        var obj = {site: site,totalTime: totalTimeCount.toString(),todayTime: todayTimeCount.toString()};
-        saveData(obj);
-      }
-    },function(error){
-      console.log(error);
-    });
+      });
   };
   remove = function () {
-     site = '';
-     url = '';
-     todayTimeCount = 0;
-     initFlag = false;
-     window.clearInterval(timer);
   };
+
   return {
       init : init,
       setDomain : setDomain,
@@ -243,6 +196,7 @@ var TimeCount = (function(){
       showTime : showTime,
       getTodayTimeCount : getTodayTimeCount,
       saveData : saveData,
+      getTimeData: getTimeData,
       remove : remove
   }
 }());
@@ -253,17 +207,17 @@ LeanCloudInit();
 // openDatabase
 var browserTimeTable = AV.Object.extend(DATABASE);
 var browserTime = new browserTimeTable();
-
+TimeCount.init();
 chrome.extension.onRequest.addListener(
   function(request, sender, sendResponse) {
-      TimeCount.init(sender.tab.url);
+      // TimeCount.countUp(sender.tab.url);
       sendResponse({farewell: "goodbye"});
  });
 
 
 chrome.tabs.onActivated.addListener(function(activeInfo){
       chrome.tabs.get(activeInfo.tabId, function(tab){
-      TimeCount.init(tab.url);
+      // TimeCount.countUp(tab.url);
 	});
 });
 
