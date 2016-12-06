@@ -179,12 +179,7 @@ var TimeCount = (function(){
   saveData = function () {
   };
   getTimeData = function() {
-      var query = new AV.Query(DATABASE);
-      query.find().then(function(res){
-          console.log(res);
-      },function(error){
-
-      });
+      // https://timecountup.herokuapp.com/data/get
   };
   remove = function () {
   };
@@ -210,14 +205,14 @@ var browserTime = new browserTimeTable();
 TimeCount.init();
 chrome.extension.onRequest.addListener(
   function(request, sender, sendResponse) {
-      // TimeCount.countUp(sender.tab.url);
+      TimeCount.countUp(sender.tab.url);
       sendResponse({farewell: "goodbye"});
  });
 
 
 chrome.tabs.onActivated.addListener(function(activeInfo){
       chrome.tabs.get(activeInfo.tabId, function(tab){
-      // TimeCount.countUp(tab.url);
+      TimeCount.countUp(tab.url);
 	});
 });
 
