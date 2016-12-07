@@ -1,6 +1,7 @@
-chrome.browserAction.setBadgeText({text: 'hello'});
-chrome.browserAction.setBadgeBackgroundColor({color: '#0000FF'});
-
+function sayHello() {
+  chrome.browserAction.setBadgeText({text: 'hello'});
+  chrome.browserAction.setBadgeBackgroundColor({color: '#0000FF'});
+}
 var Event = (function() {
     var clientList = {};
     var listen,
@@ -57,44 +58,6 @@ var Event = (function() {
         remove: remove
     }
 }());
-const DATABASE = 'browserTime';
-
-function LeanCloudInit(){
-  // 应用 ID，用来识别应用
-  var APP_ID = 'jKSkOo7kJrhGtjOPY5jtj8vt-gzGzoHsz';
-
-  // 应用 Key，用来校验权限（Web 端可以配置安全域名来保护数据安全）
-  var APP_KEY = 'R2A6rfB2v8VXrjX0mNtzro0t';
-  // 初始化
-  AV.init({
-    appId: APP_ID,
-    appKey: APP_KEY
-  });
-}
-
-function saveData(obj){
-  browserTime.save({
-    site: obj.site,
-    totalTime: obj.totalTime,
-    todayTime:obj.todayTime
-  }).then(function(object) {
-      Event.trigger('saveData');
-  },function(error){
-    console.log(error);
-  })
-}
-
-function queryData(site){
-  var query = new AV.Query(DATABASE);
-  query.contains('site',site);
-  query.find().then(function(result){
-    return result;
-  },function(error){
-  });
-}
-
-// todo
-// totalTimeCount
 var TimeCount = (function(){
   var timeData = [],
       currentCountIndex = 0,
@@ -115,35 +78,31 @@ var TimeCount = (function(){
   init = function() {
     getTimeData();
   };
-  checkUrl = function () {
+  isGoodUrl = function (url) {
     if(url === "chrome://extensions/" || url === 'chrome://newtab/'){
-      chrome.browserAction.setBadgeText({text: 'hello'});
-      chrome.browserAction.setBadgeBackgroundColor({color: '#0000FF'});
-      if(initFlag){
-        saveData();
-        Event.listen('saveData',function(){
-          remove();
-        });
-      }
+      sayHello();
       return false;
     }
     return true;
   };
-  setDomain = function () {
+  setDomain = function (url) {
     var reg_http = /http:\/\/([^\/]+)/;
     var reg_https = /https:\/\/([^\/]+)/;
     var site = url.match(reg_http);
     if(site === null || site === ''){
       site = url.match(reg_https);
     }
-    return site;
+    return site[1];
   };
   countUp = function (url) {
       reset();
+      if(!isGoodUrl(url)){
+          return ;
+      }
       var site = setDomain(url);
       var index = hasUrl(site);
       if(index < 0){
-        var data = { site: site,todayTime:0};
+        var data = { site: site,todayTime: 0};
         timeData.push(data);
         currentCountIndex = timeData.length - 1;
       }
@@ -152,7 +111,8 @@ var TimeCount = (function(){
       }
       timer = setInterval(function(){
         var time = timeData[currentCountIndex].todayTime++;
-        chrome.browserAction.setBadgeText({text: time.toString()});
+        showTime(time);
+        // chrome.browserAction.setBadgeText({text: time.toString()});
       },1000);
   };
   hasUrl = function(site) {
@@ -166,9 +126,9 @@ var TimeCount = (function(){
   reset = function() {
     window.clearInterval(timer);
   };
-  showTime = function () {
-    var hours = Math.floor(todayTimeCount / 3600);
-    var minutes = Math.floor((todayTimeCount - hours * 3600) / 60);
+  showTime = function (time) {
+    var hours = Math.floor(time / 3600);
+    var minutes = Math.floor((time - hours * 3600) / 60);
     if(hours <= 0){
       chrome.browserAction.setBadgeText({text: minutes+'m'});
     }else{
@@ -179,7 +139,7 @@ var TimeCount = (function(){
   saveData = function () {
   };
   getTimeData = function() {
-      // https://timecountup.herokuapp.com/data/get
+
   };
   remove = function () {
   };
@@ -196,12 +156,7 @@ var TimeCount = (function(){
   }
 }());
 
-
-
-LeanCloudInit();
-// openDatabase
-var browserTimeTable = AV.Object.extend(DATABASE);
-var browserTime = new browserTimeTable();
+sayHello();
 TimeCount.init();
 chrome.extension.onRequest.addListener(
   function(request, sender, sendResponse) {
@@ -212,11 +167,6 @@ chrome.extension.onRequest.addListener(
 
 chrome.tabs.onActivated.addListener(function(activeInfo){
       chrome.tabs.get(activeInfo.tabId, function(tab){
-      TimeCount.countUp(tab.url);
+        TimeCount.countUp(tab.url);
 	});
 });
-
-function showHello() {
-  chrome.browserAction.setBadgeText({text: 'hello'});
-  chrome.browserAction.setBadgeBackgroundColor({color: '#0000FF'});
-}
