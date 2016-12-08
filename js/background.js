@@ -81,7 +81,6 @@ var TimeCount = (function(){
   };
   isGoodUrl = function (url) {
     if(url === "chrome://extensions/" || url === 'chrome://newtab/'){
-      sayHello();
       return false;
     }
     return true;
@@ -97,6 +96,10 @@ var TimeCount = (function(){
   };
   countUp = function (url) {
       reset();
+      if(!isGoodUrl(url)){
+          sayHello();
+          return ;
+      }
       setCurrentIndex(url);
       timer = setInterval(function(){
         var time = timeData[currentCountIndex].todayTime++;
@@ -116,14 +119,11 @@ var TimeCount = (function(){
     window.clearInterval(timer);
   };
   setCurrentIndex = function(url) {
-    if(!isGoodUrl(url)){
-        return ;
-    }
+
     var site = setDomain(url);
     var index = hasUrl(site);
     if(index < 0){
-      var data = { site: site,todayTime: 0};
-      timeData.push(data);
+      timeData.push({ site: site,todayTime: 0});
       currentCountIndex = timeData.length - 1;
     }
     else {
@@ -145,7 +145,6 @@ var TimeCount = (function(){
   saveData = function () {
   };
   getTimeData = function() {
-
   };
   remove = function () {
   };
@@ -169,7 +168,6 @@ chrome.extension.onRequest.addListener(
       TimeCount.countUp(sender.tab.url);
       sendResponse({farewell: "goodbye"});
  });
-
 
 chrome.tabs.onActivated.addListener(function(activeInfo){
       chrome.tabs.get(activeInfo.tabId, function(tab){
