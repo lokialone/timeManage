@@ -22,7 +22,7 @@
    },
    "content_scripts": [{
          "matches": ["http://*/*","https://*/*"],
-         "js": [ "js/overTime.js"],
+         "js": [ "js/jquery-3.1.1.min.js","js/overTime.js"],
          "run_at": "document_start",
          "all_frames":false
     }],

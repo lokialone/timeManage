@@ -129,12 +129,14 @@ var TimeCount = (function(){
   showTime = function (time) {
     var hours = Math.floor(time / 3600);
     var minutes = Math.floor((time - hours * 3600) / 60);
+    var text = '';
     if(hours <= 0){
-      chrome.browserAction.setBadgeText({text: minutes+'m'});
+        text = minutes + 'm';
     }else{
-
-      chrome.browserAction.setBadgeText({text: hours + 'h' });
+        var temp = Math.floor(minutes / 60);
+        temp > 0 ? text = hours + '.' + temp + 'h' : text = hours + 'h';  
     }
+    chrome.browserAction.setBadgeText({text: text });
   },
   saveData = function () {
   };
