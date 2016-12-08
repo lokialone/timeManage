@@ -69,6 +69,7 @@ var TimeCount = (function(){
       showTime,
       getTodayTimeCount,
       saveData,
+      setCurrentIndex,
       checkUrl,
       hasUrl,
       getTimeData,
@@ -96,19 +97,7 @@ var TimeCount = (function(){
   };
   countUp = function (url) {
       reset();
-      if(!isGoodUrl(url)){
-          return ;
-      }
-      var site = setDomain(url);
-      var index = hasUrl(site);
-      if(index < 0){
-        var data = { site: site,todayTime: 0};
-        timeData.push(data);
-        currentCountIndex = timeData.length - 1;
-      }
-      else {
-        currentCountIndex = index;
-      }
+      setCurrentIndex(url);
       timer = setInterval(function(){
         var time = timeData[currentCountIndex].todayTime++;
         showTime(time);
@@ -126,6 +115,21 @@ var TimeCount = (function(){
   reset = function() {
     window.clearInterval(timer);
   };
+  setCurrentIndex = function(url) {
+    if(!isGoodUrl(url)){
+        return ;
+    }
+    var site = setDomain(url);
+    var index = hasUrl(site);
+    if(index < 0){
+      var data = { site: site,todayTime: 0};
+      timeData.push(data);
+      currentCountIndex = timeData.length - 1;
+    }
+    else {
+      currentCountIndex = index;
+    }
+  };
   showTime = function (time) {
     var hours = Math.floor(time / 3600);
     var minutes = Math.floor((time - hours * 3600) / 60);
@@ -134,7 +138,7 @@ var TimeCount = (function(){
         text = minutes + 'm';
     }else{
         var temp = Math.floor(minutes / 60);
-        temp > 0 ? text = hours + '.' + temp + 'h' : text = hours + 'h';  
+        temp > 0 ? text = hours + '.' + temp + 'h' : text = hours + 'h';
     }
     chrome.browserAction.setBadgeText({text: text });
   },
