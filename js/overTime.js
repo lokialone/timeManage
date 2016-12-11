@@ -4,28 +4,48 @@ chrome.extension.sendRequest({greeting: "begin"}, function(response) {
 
 window.onload = function(){
 
-  var content = document.getElementsByTagName('body')[0].childNodes;
-  console.log(document);
-  var need = [];
-  for(var i = 0, len = content.length; i < len; i++){
 
-    if(content[i].nodeType == 1){
-      content[i].style.color="red";
-    }
-  }
   // get bodys  all elements includes all childen
-  var test = $('body'). children();
-  console.log(test);
+  var nodeNeed = [];
+  function getAllTextNode(){
+    var test = $('body'). children();
+    dfs(test);
+  }
+  getAllTextNode();
+
+
+  function dfs(ele){
+
+    for(var i = 0, len = ele.length;i < len; i++) {
+      if(ele[i].children.length === 0){
+        // console.log(ele[i]);
+        nodeNeed.push(ele[i]);
+      }else {
+        // console.log('dfs');
+        // console.log(ele[i]);
+        nodeNeed.push(ele[i]);
+        dfs(ele[i].children);
+      }
+    }
+    // console.log(nodeNeed);
+  }
+
   function shake(one){
       var distance = Math.random() - 0.5;
-      console.log(one);
-      one.style.left=one.offsetLeft + distance + 'px';
+      var top = one.offsetTop + 'px'
+      var left = one.offsetLeft + distance + 'px'
+      one.style.position = 'absolute';
+      one.style.top = top;
+      one.style.left =left;
+      one.style.color = 'red';
+      // console.log(top);
+      // console.log(left);
+      // console.log(one);
   }
 
   function allShake() {
-    console.log('bbb');
     setTimeout(function(){
-      need.forEach(shake);
+      nodeNeed.forEach(shake);
       // allShake();
     },1000)
   }
