@@ -23,21 +23,29 @@ window.onload = function(){
       }else {
         // console.log('dfs');
         // console.log(ele[i]);
-        nodeNeed.push(ele[i]);
+        // nodeNeed.push(ele[i]);
         dfs(ele[i].children);
       }
     }
     // console.log(nodeNeed);
   }
+  function getRangeRandom(min,max){
+    if(min > max){
+      alert('give the corrent range');
+      return;
+    }
 
+    return Math.floor((max - min) * Math.random()) + min;
+  }
   function shake(one){
-      var distance = Math.random() - 0.5;
-      var top = one.offsetTop + 'px'
-      var left = one.offsetLeft + distance + 'px'
+      var distance = getRangeRandom(-3,3);
+      // var top = one.offsetTop + 'px';
+      // var left = one.offsetLeft + 'px';
       one.style.position = 'absolute';
-      one.style.top = top;
-      one.style.left =left;
-      one.style.color = 'red';
+      // one.style.top = top;
+      // one.style.left =left;
+      $one = $(one).animate({left: distance});
+      // one.style.color = 'red';
       // console.log(top);
       // console.log(left);
       // console.log(one);
@@ -46,8 +54,8 @@ window.onload = function(){
   function allShake() {
     setTimeout(function(){
       nodeNeed.forEach(shake);
-      // allShake();
-    },1000)
+      allShake();
+    },500)
   }
 
   allShake();
